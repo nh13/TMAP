@@ -219,6 +219,9 @@ tmap_map4_aux_core(tmap_seq_t *seq,
       }
       start += by;
   }
+  
+  // HERE
+  int32_t local_extend = 1;
 
   // remove seeds if there were too many repetitive hits
   //fprintf(stderr, "matches->n=%d total=%d\n", (int)matches->n, total);
@@ -281,8 +284,116 @@ tmap_map4_aux_core(tmap_seq_t *seq,
                   }
                   s->score_subo = INT32_MIN;
 
-                  // map3 aux data
+                  // map4 aux data
                   tmap_map_sam_malloc_aux(s);
+  
+                  // TODO forward strand only
+                  if(1 == local_extend && 0 == strand) {
+                      int32_t score = len * opt->score_match;
+                      int32_t score_left, score_right;
+                      uint8_t *q_local = NULL, *t_local = NULL;
+                      uint8_t q_len_local, t_len_local;
+                      uint32_t start_pos, end_pos;
+                      int32_t matrix[25];
+                      tmap_sw_param_t ap;
+
+                      // init params
+                      ap.matrix = matrix;
+                      __map_util_gen_ap(ap, opt);
+
+                      fprintf(stderr, "s->pos=%d score=%d qstart=%d qend=%d len=%d query_len=%d\n", 
+                              s->pos, score, qstart, qend, len, query_len);
+
+                      // extend left
+                      if(0 < qstart) {
+                          // query
+                          q_local = query;
+                          q_len_local = qstart;
+
+                          if(pos <= 1) {
+                              // TODO no more bases to the left
+                              tmap_bug();
+                          }
+
+                          // add in band width
+                          t_len_local = q_len_local + opt->bw;
+                          if(2 * q_len_local < t_len_local) t_len_local = 2 * q_len_local;
+
+                          // start/end position (one-based)
+                          end_pos = pos-1;
+                          if(end_pos <= t_len_local) start_pos = 1;
+                          else start_pos = end_pos + 1 - t_len_local;
+                          t_len_local = end_pos - start_pos + 1;
+
+                          // allocate memory
+                          t_local = tmap_malloc(sizeof(uint8_t) * t_len_local, "t_local"); // TODO: pre-allocate
+
+                          fprintf(stderr, "s->seqid=%d start_pos=%d end_pos=%d\n", s->seqid+1, start_pos, end_pos);
+
+                          // NB: IUPAC codes are turned into mismatches
+                          if(NULL == tmap_refseq_subseq2(refseq, s->seqid+1, start_pos, end_pos, t_local, 1, NULL)) {
+                              tmap_error("bug encountered", Exit, OutOfRange);
+                          }
+
+                          score_left = tmap_sw_clipping_core(t_local, t_len_local,
+                                                             q_local, q_len_local,
+                                                             &ap,
+                                                             0, 0, // TODO set these based on strand
+                                                             NULL, NULL,
+                                                             0); // TODO right justified?
+                          
+                          fprintf(stderr, "extend left q_len_local=%d t_len_local=%d score_left=%d\n", q_len_local, t_len_local, score_left);
+
+                          free(t_local);
+                          t_local = NULL;
+                      }
+
+                      // extend right
+                      if(qend < query_len -1) {
+                          // query
+                          q_local = query + len;
+                          q_len_local = query_len - qend - 1;
+
+                          if(refseq->annos[s->seqid].len <= pos) {
+                              // TODO no more bases to the right
+                              tmap_bug();
+                          }
+
+                          // add in band width
+                          t_len_local = q_len_local + opt->bw;
+                          if(2 * q_len_local < t_len_local) t_len_local = 2 * q_len_local;
+
+                          // start/end position (one-based)
+                          start_pos = pos+1;
+                          if(refseq->annos[s->seqid].len <= start_pos + t_len_local - 1) end_pos = refseq->annos[s->seqid].len;
+                          else end_pos = start_pos + t_len_local - 1;
+                          t_len_local = end_pos - start_pos + 1;
+
+                          // allocate memory
+                          t_local = tmap_malloc(sizeof(uint8_t) * t_len_local, "t_local"); // TODO: pre-allocate
+
+                          fprintf(stderr, "s->seqid=%d start_pos=%d end_pos=%d\n", s->seqid+1, start_pos, end_pos);
+
+                          // NB: IUPAC codes are turned into mismatches
+                          if(NULL == tmap_refseq_subseq2(refseq, s->seqid+1, start_pos, end_pos, t_local, 1, NULL)) {
+                              tmap_error("bug encountered", Exit, OutOfRange);
+                          }
+
+                          score_right = tmap_sw_clipping_core(t_local, t_len_local,
+                                                             q_local, q_len_local,
+                                                             &ap,
+                                                             0, 0, // TODO set these based on strand
+                                                             NULL, NULL,
+                                                             0); // TODO right justified?
+                          
+                          fprintf(stderr, "extend right q_len_local=%d t_len_local=%d score_right=%d\n", q_len_local, t_len_local, score_right);
+
+                          free(t_local);
+                          t_local = NULL;
+                      }
+                      fprintf(stderr, "score=%d score_left=%d score_right=%d\n",
+                              score, score_left, score_right);
+                  }
 
                   n++;
               }
@@ -293,6 +404,7 @@ tmap_map4_aux_core(tmap_seq_t *seq,
   }
 
   tmap_bwt_smem_intv_vec_destroy(matches);
+
 
   return sams;
 }
