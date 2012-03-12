@@ -1948,7 +1948,7 @@ tmap_map_opt_check(tmap_map_opt_t *opt)
     case TMAP_MAP_ALGO_MAP4:
       if(-1 != opt->min_seed_length) {
           tmap_error_cmd_check_int(opt->min_seed_length, 1, INT32_MAX, "--min-seed-length");
-          if(opt->max_seed_length < opt->min_seed_length) {
+          if(-1 != opt->max_seed_length && opt->max_seed_length < opt->min_seed_length) {
               tmap_error("--max-seed-length is less than --min-seed-length", Exit, CommandLineArgument);
           }
       }
