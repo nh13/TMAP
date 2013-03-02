@@ -58,7 +58,8 @@ GLOBAL_SOURCES = \
 				 src/sw/lib/AffineSWOptimization.cpp src/sw/lib/AffineSWOptimization.h \
 				 src/sw/lib/AffineSWOptimizationHash.cpp src/sw/lib/AffineSWOptimizationHash.h \
 				 src/sw/lib/AffineSWOptimizationWrapper.cpp src/sw/lib/AffineSWOptimizationWrapper.h \
-				 src/sw/tmap_vsw_bm.c 
+				 src/sw/tmap_vsw_bm.c \
+				 src/sw/ksw.c src/sw/ksw/h
 
 samtools_SOURCES = \
 				   src/samtools/bam.c src/samtools/bam.h \
