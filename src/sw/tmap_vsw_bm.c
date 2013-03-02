@@ -114,7 +114,7 @@ tmap_vsw_bm_core(int32_t seq_len, int32_t tlen, int32_t n_iter,
 
 static int
 usage(int32_t seq_len, int32_t tlen, int32_t n_iter, 
-      int32_t n_sub_iter, int32_t vsw_type)
+      int32_t n_sub_iter, int32_t vsw_type, int32_t bw)
 {
   static char *vsw_type_str[] = {
       "NB: currently only #1, #4, and #6 have been tested",
@@ -140,6 +140,7 @@ usage(int32_t seq_len, int32_t tlen, int32_t n_iter,
   tmap_file_fprintf(tmap_file_stderr, "         -t INT      the target length [%d] (must be at least as long as the query)\n", tlen);
   tmap_file_fprintf(tmap_file_stderr, "         -n INT      the number of iterations [%d]\n", n_iter);
   tmap_file_fprintf(tmap_file_stderr, "         -N INT      the number of re-evaluations of the same query/target combination [%d]\n", n_sub_iter);
+  tmap_file_fprintf(tmap_file_stderr, "         -w INT      the band width (-2 only) [%d]\n", bw);
   tmap_file_fprintf(tmap_file_stderr, "         -H INT      smith waterman algorithm [%d]\n", vsw_type);
   ptr = vsw_type_str;
   while(NULL != (*ptr)) {
@@ -180,12 +181,12 @@ tmap_vswbm_main(int argc, char *argv[])
           bw = atoi(optarg); break;
         case 'h':
         default:
-          return usage(seq_len, tlen, n_iter, n_sub_iter, vsw_type);
+          return usage(seq_len, tlen, n_iter, n_sub_iter, vsw_type, bw);
       }
   }
      
   if(argc != optind || seq_len > tlen) {
-      return usage(seq_len, tlen, n_iter, n_sub_iter, vsw_type);
+      return usage(seq_len, tlen, n_iter, n_sub_iter, vsw_type, bw);
   }
 
   tmap_progress_set_verbosity(1);
